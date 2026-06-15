@@ -1,3 +1,4 @@
+import json
 from numbers import Real
 from typing import Self
 
@@ -7,7 +8,7 @@ import pygame as pg
 class Object(object):
     def __init__(self: Self, pos: pg.Vector2) -> None:
         self._level = None
-        self._pos = pos
+        self._pos = pg.Vector2(pos)
 
     @property
     def pos(self: Self) -> pg.Vector2:
@@ -15,7 +16,16 @@ class Object(object):
     
     @pos.setter
     def pos(self: Self, value: pg.Vector2) -> None:
-        self._pos = value
+        self._pos = pg.Vector2(value)
+
+    @classmethod
+    def load(cls: type, data: dict) -> None:
+        return cls(pg.Vector2(0, 0))
+
+
+KEY = { # key used when loading level files
+    'object': Object,
+}
 
 
 class Level(object):
@@ -35,4 +45,16 @@ class Level(object):
         self._objects = objects
         for obj in objects:
             obj._level = self
+
+    @classmethod
+    def load(cls: type, path: str) -> None:
+        with open(path, 'r') as file:
+            objects = set()
+            data = json.load(file)
+            for key, value in data['objects']:
+                objects.add(KEY[key].load(value))
+            return cls(objects)
+
+    def update(self: Self, rel_game_speed: Real) -> None:
+        pass
 

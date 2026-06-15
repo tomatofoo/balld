@@ -6,7 +6,7 @@ import pygame as pg
 
 class Game(object):
 
-    _SCREEN_SIZE = (640, 480)
+    _SCREEN_SIZE = (720, 540)
     _SURF_RATIO = (2, 2)
     _SURF_SIZE = (int(_SCREEN_SIZE[0] / _SURF_RATIO[0]),
                   int(_SCREEN_SIZE[1] / _SURF_RATIO[1]))
