@@ -17,12 +17,14 @@ class Game(object):
         pg.init()
 
         self._settings = {
-            'vsync': 1,
+            'graphics': {
+                'vsync': 1,
+            },
         }
         self._screen = pg.display.set_mode(
             self._SCREEN_SIZE,
             flags=self._SCREEN_FLAGS,
-            vsync=self._settings['vsync']
+            vsync=self._settings['graphics']['vsync']
         )
         pg.display.set_caption('Balld')
         self._surface = pg.Surface(self._SURF_SIZE)
