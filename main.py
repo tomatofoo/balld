@@ -11,7 +11,7 @@ class Game(object):
     _SURF_SIZE = (int(_SCREEN_SIZE[0] / _SURF_RATIO[0]),
                   int(_SCREEN_SIZE[1] / _SURF_RATIO[1]))
     _SCREEN_FLAGS = pg.RESIZABLE | pg.SCALED
-    _GAME_SPEED = 60
+    _GAME_SPEED = 1
 
     def __init__(self: Self) -> None:
         pg.init()
