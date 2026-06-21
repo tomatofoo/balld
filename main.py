@@ -3,6 +3,9 @@ from typing import Self
 
 import pygame as pg
 
+from modules.physics import Circle
+from modules.physics import Gon
+
 
 class Game(object):
 
@@ -29,6 +32,8 @@ class Game(object):
         pg.display.set_caption('Balld')
         self._surface = pg.Surface(self._SURF_SIZE)
         self._running = 0
+
+        self._circle = Circle.load({'pos': (0, 0.1), 'radius': 1})
 
     def run(self: Self) -> None:
         self._running = 1
