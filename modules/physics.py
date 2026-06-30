@@ -127,7 +127,7 @@ class Circle(Object):
 
     @radius.setter
     def radius(self: Self, value: Real) -> None:
-        self._radius = valuehttps://turbowarp.org/1307198399?fps=60
+        self._radius = value
         self._diameter = self._radius * 2
 
     def update(self: Self, timestep_sq: Real, objects: Object) -> None:
