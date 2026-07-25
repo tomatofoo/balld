@@ -137,7 +137,7 @@ class Circle(Object):
         self._radius = value
         self._diameter = self._radius * 2
 
-    def _tiles(self: Self, tilesize_inv: Real, sets: dict[tuple, set]) -> set[tuple]:
+    def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
         tiles = set()
         for y in range(
             math.floor((self._pos[1] - self._radius) * tilesize_inv),
@@ -289,7 +289,7 @@ class Level(object):
     def _update_sets(self: Self) -> None:
         self._sets = {}
         for obj in self._objects:
-            for tile in obj._tiles(self._tilesize_inv, self._sets):
+            for tile in obj._tiles(self._tilesize_inv):
                 objects = self._sets.get(tile)
                 if objects is None:
                     self._sets[tile] = {obj}
