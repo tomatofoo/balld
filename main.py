@@ -1,10 +1,12 @@
 import time
+import math
 from typing import Self
 
 import pygame as pg
 
 from modules.physics import Circle
 from modules.physics import Gon
+from modules.physics import Level
 
 
 class Game(object):
@@ -32,12 +34,17 @@ class Game(object):
         pg.display.set_caption('Balld')
         self._surface = pg.Surface(self._SURF_SIZE)
         self._running = 0
-
-        self._circle = Circle.load({'pos': (0, 0.1), 'radius': 1})
+        
+        objects = set()
+        for i in range(100):
+            objects.add(Circle((2 + i * 2, 20), 8, force=pg.Vector2(0, 320)))
+        self._level = Level(objects, tilesize=16)
 
     def run(self: Self) -> None:
         self._running = 1
         start_time = time.time()
+
+        clicking = None
 
         while self._running:
             delta_time = time.time() - start_time
@@ -48,7 +55,26 @@ class Game(object):
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self._running = 0
+                # TEMP
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    pos = (event.pos[0] / 2, event.pos[1] / 2)
+                    for obj in self._level.objects:
+                        if obj.pos.distance_to(pos) < obj.radius:
+                            clicking = obj
+                elif event.type == pg.MOUSEMOTION and clicking is not None:
+                    clicking.pos = event.pos[0] / 2, event.pos[1] / 2
+                    clicking.fixed = 1
+                elif event.type == pg.MOUSEBUTTONUP and clicking is not None:
+                    clicking.fixed = 0
+                    clicking = None
 
+            # Update
+            self._level.update(rel_game_speed)
+
+            # Render
+            self._surface.fill((0, 0, 0))
+            self._level.render(self._surface)
+            
             resized_surf = pg.transform.scale(self._surface, self._SCREEN_SIZE)
             self._screen.blit(resized_surf, (0, 0))
 
