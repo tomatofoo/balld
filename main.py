@@ -17,6 +17,7 @@ class Game(object):
                   int(_SCREEN_SIZE[1] / _SURF_RATIO[1]))
     _SCREEN_FLAGS = pg.RESIZABLE | pg.SCALED
     _GAME_SPEED = 1
+    _TIMEOUT = 1
 
     def __init__(self: Self) -> None:
         pg.init()
@@ -90,7 +91,7 @@ class Game(object):
             delta_time = time.time() - start_time
             start_time = time.time()
 
-            rel_game_speed = delta_time * self._GAME_SPEED
+            rel_game_speed = min(delta_time * self._GAME_SPEED, self._TIMEOUT)
 
             for event in pg.event.get():
                 if event.type == pg.QUIT:
