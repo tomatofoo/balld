@@ -93,14 +93,17 @@ class Object(object):
         prev_pos.update(new_prev_pos)
 
     # run one timestep
-    def update(self: Self, timestep_sq: Real, objects: set[Object]) -> None:
+    def update(self: Self,
+               timestep_sq: Real,
+               objects: set[Object]=set(),
+               force: pg.Vector2=(0, 0)) -> None:
         if self._fixed:
             self._prev_pos = self._pos.copy()
             return None
         self._verlet(
             self._prev_pos,
             self._pos,
-            self._force / self._mass,
+            (self._force + force) / self._mass,
             timestep_sq,
         )
 
@@ -151,15 +154,18 @@ class Circle(Object):
         self._last_tiles = tiles
         return tiles
 
-    def update(self: Self, timestep_sq: Real, objects: set[Object]) -> None:
-        super().update(timestep_sq, objects)
+    def update(self: Self,
+               timestep_sq: Real,
+               objects: set[Object]=set(),
+               force: pg.Vector2=(0, 0)) -> None:
+        super().update(timestep_sq, objects, force)
         for obj in objects:
             if obj is self:
                 continue
             if isinstance(obj, Circle):
                 cur_dist = self._pos.distance_to(obj._pos)
                 new_dist = self._radius + obj._radius
-                if cur_dist < new_dist:
+                if 0 < cur_dist < new_dist:
                     dist = new_dist - cur_dist
                     # I don't know any other way to condense this
                     if self._fixed:
@@ -181,20 +187,29 @@ class Circle(Object):
             self._pos[0] = self._radius
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
-        pg.draw.circle(surf, (255, 255, 255), self._pos, self._radius)
+        pg.draw.circle(
+            surf,
+            (255, 255, 255),
+            self._prev_pos.lerp(self._pos, t),
+            self._radius,
+        )
 
 
 class Gon(Object):
     def __init__(self: Self,
                  vertices: tuple[Circle],
                  connections: tuple[tuple[int, int]],
+                 stiffness: int=1,
+                 average: bool=0,
                  force: pg.Vector2=(0, 0)) -> None:
         mass = 0
         for vertex in vertices:
             mass += vertex._mass
-        super().__init__(vertices[0][0], mass, force)
-        self.vertices = vertices
-        self._connections = connections
+        super().__init__(vertices[0]._pos, mass, force)
+        self._vertices = vertices
+        self.connections = connections
+        self._stiffness = stiffness
+        self._average = average
 
     @classmethod
     def load(self: Self, data: dict) -> None:
@@ -219,12 +234,152 @@ class Gon(Object):
     @connections.setter
     def connections(self: Self, value: tuple[tuple[int, int]]) -> None:
         self._connections = value
+        self._dists = []
+        for connection in value:
+            self._dists.append(self._vertices[connection[0]]._pos.distance_to(
+                self._vertices[connection[1]]._pos
+            ))
+
+    @property
+    def stiffness(self: Self) -> int:
+        return self._stiffness
+
+    @stiffness.setter
+    def stiffness(self: Self, value: int) -> None:
+        self._stiffness = value
+
+    @property
+    def stiffness(self: Self) -> bool:
+        return self._average
+
+    @stiffness.setter
+    def stiffness(self: Self, value: bool) -> None:
+        self._average = value
+
+    def _tiles(self: Self, tilesize_inv: Real) -> None:
+        tiles = set()
+        top = math.inf
+        bottom = 0
+        left = math.inf
+        right = 0
+        for vertex in self._vertices:
+            y = vertex._pos[1] - vertex._radius
+            if y < top:
+                top = y
+            y = vertex._pos[1] + vertex._radius
+            if y > bottom:
+                bottom = y
+            x = vertex._pos[0] - vertex._radius
+            if x < left:
+                left = x
+            x = vertex._pos[0] + vertex._radius
+            if x > right:
+                right = x
+        for y in range(
+            math.floor(top * tilesize_inv),
+            math.floor(bottom * tilesize_inv) + 1,
+        ):
+            for x in range(
+                math.floor(left * tilesize_inv),
+                math.floor(right * tilesize_inv) + 1,
+            ):
+                tiles.add((x, y))
+        self._last_tiles = tiles
+        return tiles
 
     def _collide(self: Self, obj: Object) -> None:
         pass
     
-    def update(self: Self, timestep_sq: Real, objects: set[Object]) -> None:
-        pass
+    def update(self: Self,
+               timestep_sq: Real,
+               objects: set[Object],
+               force: pg.Vector2=(0, 0)) -> None:
+        for vertex in self._vertices:
+            vertex.update(timestep_sq, objects, self._force + force)
+        for obj in objects:
+            if isinstance(obj, Circle):
+                for connection in self._connections:
+                    # https://stackoverflow.com/a/1501725/24845999
+                    # projects point onto line segment
+                    # vector projection formula but 
+                    # without final multiplication
+                    # then calculates distance to that point
+                    vertex1 = self._vertices[connection[0]]
+                    vertex2 = self._vertices[connection[1]]
+                    diff = vertex2._pos - vertex1._pos
+                    t = pg.math.clamp(
+                        diff.dot(obj._pos - vertex1._pos)
+                        / diff.magnitude_squared(),
+                        0, 1,
+                    )
+                    proj = vertex1._pos + t * diff
+                    diff = proj - obj._pos
+                    cur_dist = diff.magnitude()
+                    if 0 < cur_dist < obj._radius:
+                        dist = cur_dist - obj._radius
+                        if not (
+                            obj._fixed or (vertex1._fixed and vertex2._fixed)
+                        ):
+                            dist *= 0.5
+                        rel = diff / cur_dist * dist
+                        if not obj._fixed:
+                            obj._pos += rel
+                        if not vertex1._fixed:
+                            vertex1._pos -= rel
+                        if not vertex2._fixed:
+                            vertex2._pos -= rel
+            if isinstance(obj, Gon):
+                pass
+        
+        for i in range(self._stiffness):
+            deltas = {}
+            for dex, connection in enumerate(self._connections):
+                diff = (
+                    self._vertices[connection[1]]._pos
+                    - self._vertices[connection[0]]._pos
+                )
+                cur_dist = diff.magnitude()
+                dist = cur_dist - self._dists[dex]
+                if not (
+                    self._vertices[connection[0]]._fixed
+                    or self._vertices[connection[1]]._fixed
+                ):
+                    dist *= 0.5
+                if cur_dist:
+                    rel = diff / cur_dist * dist
+                    if not self._vertices[connection[0]]._fixed:
+                        if self._average:
+                            vector = deltas.get(connection[0])
+                            if vector is None:
+                                deltas[connection[0]] = [rel, 1]
+                            else:
+                                vector[0] += rel
+                                vector[1] += 1
+                        else:
+                            self._vertices[connection[0]]._pos += rel
+                    if not self._vertices[connection[1]]._fixed:
+                        if self._average:
+                            vector = deltas.get(connection[1])
+                            if vector is None:
+                                deltas[connection[1]] = [-rel, 1]
+                            else:
+                                vector[0] -= rel
+                                vector[1] += 1
+                        else:
+                            self._vertices[connection[1]]._pos -= rel
+            for dex, delta in deltas.items():
+                self._vertices[dex]._pos += delta[0] / delta[1]
+
+    def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
+        for vertex in self._vertices:
+            vertex.render(surf, t)
+        for connection in self._connections:
+            pg.draw.line(
+                surf,
+                (255, 255, 255),
+                self._vertices[connection[0]]._pos,
+                self._vertices[connection[1]]._pos,
+            )
 
 
 KEY = { # key used when loading level files
