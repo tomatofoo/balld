@@ -324,7 +324,6 @@ class Gon(Object):
             if isinstance(obj, Gon):
                 for vertex in obj._vertices:
                     self._collide_circle(vertex)
-
         for i in range(self._stiffness):
             deltas = {}
             for dex, connection in enumerate(self._connections):
