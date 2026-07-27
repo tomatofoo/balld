@@ -70,14 +70,6 @@ class Object(object):
         self._last_tiles = set()
         return self._last_tiles
 
-    # will only do own part of collision; the other object handles its part
-    # each successive object type that is defined must implement collisions 
-    # with all other objectssikx 
-    def _collide(self: Self, pos: pg.Vector2, dist: Real) -> None:
-        if self._fixed:
-            return None
-        self._pos.move_towards_ip(pos, -dist)
-    
     # run jakobsen constraint
     def _constrain(self: Self) -> None:
         pass
@@ -163,19 +155,18 @@ class Circle(Object):
             if obj is self:
                 continue
             if isinstance(obj, Circle):
-                cur_dist = self._pos.distance_to(obj._pos)
+                diff = obj._pos - self._pos
+                cur_dist = diff.magnitude()
                 new_dist = self._radius + obj._radius
                 if 0 < cur_dist < new_dist:
                     dist = new_dist - cur_dist
-                    # I don't know any other way to condense this
-                    if self._fixed:
-                        obj._collide(self._pos, dist)
-                    elif obj._fixed:
-                        self._collide(obj._pos, dist)
-                    else:
+                    if not (self._fixed or obj._fixed):
                         dist *= 0.5
-                        obj._collide(self._pos, dist)
-                    self._collide(obj._pos, dist)
+                    rel = diff / cur_dist * dist
+                    if not obj._fixed:
+                        obj._pos += rel
+                    if not self._fixed:
+                        self._pos -= rel
         # TEMP
         if self._pos[1] > 270 - self._radius:
             self._pos[1] = 270 - self._radius
@@ -287,9 +278,6 @@ class Gon(Object):
         self._last_tiles = tiles
         return tiles
 
-    def _collide(self: Self, obj: Object) -> None:
-        pass
-    
     def update(self: Self,
                timestep_sq: Real,
                objects: set[Object],
