@@ -247,12 +247,44 @@ class Gon(Object):
     def stiffness(self: Self, value: bool) -> None:
         self._average = value
 
+    def _collide_circle(self: Self, obj: Circle) -> None:
+        for connection in self._connections:
+            # https://stackoverflow.com/a/1501725/24845999
+            # projects point onto line segment
+            # vector projection formula but 
+            # without final multiplication
+            # then calculates distance to that point
+            vertex1 = self._vertices[connection[0]]
+            vertex2 = self._vertices[connection[1]]
+            diff = vertex2._pos - vertex1._pos
+            t = pg.math.clamp(
+                diff.dot(obj._pos - vertex1._pos)
+                / diff.magnitude_squared(),
+                0, 1,
+            )
+            proj = vertex1._pos + t * diff
+            diff = proj - obj._pos
+            cur_dist = diff.magnitude()
+            if 0 < cur_dist < obj._radius:
+                dist = cur_dist - obj._radius
+                if not (
+                    obj._fixed or (vertex1._fixed and vertex2._fixed)
+                ):
+                    dist *= 0.5
+                rel = diff / cur_dist * dist
+                if not obj._fixed:
+                    obj._pos += rel
+                if not vertex1._fixed:
+                    vertex1._pos -= rel
+                if not vertex2._fixed:
+                    vertex2._pos -= rel
+
     def _tiles(self: Self, tilesize_inv: Real) -> None:
         tiles = set()
         top = math.inf
-        bottom = 0
+        bottom = -math.inf
         left = math.inf
-        right = 0
+        right = -math.inf
         for vertex in self._vertices:
             y = vertex._pos[1] - vertex._radius
             if y < top:
@@ -285,40 +317,14 @@ class Gon(Object):
         for vertex in self._vertices:
             vertex.update(timestep_sq, objects, self._force + force)
         for obj in objects:
+            if obj is self:
+                continue
             if isinstance(obj, Circle):
-                for connection in self._connections:
-                    # https://stackoverflow.com/a/1501725/24845999
-                    # projects point onto line segment
-                    # vector projection formula but 
-                    # without final multiplication
-                    # then calculates distance to that point
-                    vertex1 = self._vertices[connection[0]]
-                    vertex2 = self._vertices[connection[1]]
-                    diff = vertex2._pos - vertex1._pos
-                    t = pg.math.clamp(
-                        diff.dot(obj._pos - vertex1._pos)
-                        / diff.magnitude_squared(),
-                        0, 1,
-                    )
-                    proj = vertex1._pos + t * diff
-                    diff = proj - obj._pos
-                    cur_dist = diff.magnitude()
-                    if 0 < cur_dist < obj._radius:
-                        dist = cur_dist - obj._radius
-                        if not (
-                            obj._fixed or (vertex1._fixed and vertex2._fixed)
-                        ):
-                            dist *= 0.5
-                        rel = diff / cur_dist * dist
-                        if not obj._fixed:
-                            obj._pos += rel
-                        if not vertex1._fixed:
-                            vertex1._pos -= rel
-                        if not vertex2._fixed:
-                            vertex2._pos -= rel
+                self._collide_circle(obj)
             if isinstance(obj, Gon):
-                pass
-        
+                for vertex in obj._vertices:
+                    self._collide_circle(vertex)
+
         for i in range(self._stiffness):
             deltas = {}
             for dex, connection in enumerate(self._connections):
