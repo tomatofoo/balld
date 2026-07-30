@@ -234,7 +234,7 @@ class Circle(Object):
 class Gon(Object):
     def __init__(self: Self,
                  vertices: tuple[Circle],
-                 connections: tuple[tuple[int, int]],
+                 connections: tuple[tuple[int, int, bool]],
                  stiffness: int=1,
                  average: bool=0,
                  force: pg.Vector2=(0, 0),
@@ -346,6 +346,8 @@ class Gon(Object):
 
     def _collide_circle(self: Self, obj: Circle) -> None:
         for connection in self._connections:
+            if not connection[2]:
+                continue
             # https://stackoverflow.com/a/1501725/24845999
             # projects point onto line segment
             # vector projection formula but 
@@ -442,9 +444,10 @@ class Gon(Object):
         for vertex in self._vertices:
             vertex.render(surf, t)
         for connection in self._connections:
+            color = (255, 255, 255) if connection[2] else (0, 0, 255)
             pg.draw.line(
                 surf,
-                (255, 255, 255),
+                color,
                 self._vertices[connection[0]]._pos,
                 self._vertices[connection[1]]._pos,
             )
