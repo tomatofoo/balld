@@ -37,7 +37,7 @@ class Game(object):
         self._running = 0
         
         objects = set()
-        for i in range(300):
+        for i in range(100):
             objects.add(Circle((2 + i * 2, 20), 4, force=pg.Vector2(0, 320)))
         objects.add(Gon(
             (Circle((210, 210), 2, force=pg.Vector2(0, 320), fixed=0),
@@ -52,8 +52,8 @@ class Game(object):
              Circle((110, 100), 2, force=pg.Vector2(0, 320), fixed=1)),
             ((0, 1), (1, 2), (0, 2)),
         ))
-        # THE BEHEMOTH
         """
+        # THE BEHEMOTH
         objects.add(Gon(
             (Circle((180, 135), 2, force=pg.Vector2(0, 320), fixed=1),
              Circle((175, 130), 2, force=pg.Vector2(0, 320), fixed=0),
@@ -76,7 +76,7 @@ class Game(object):
              (2, 12), (3, 11), (2, 11), (3, 12), (11, 12),
              (5, 8), (6, 7), (9, 12), (10, 11),
              (5, 7), (6, 8), (9, 11), (10, 12)),
-            stiffness=10,
+            stiffness=20,
         ))
         """
         self._level = Level(objects, tilesize=8)

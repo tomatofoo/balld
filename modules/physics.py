@@ -4,6 +4,7 @@ import math
 import json
 from numbers import Real
 from typing import Self
+from typing import Optional
 
 import pygame as pg
 
@@ -13,7 +14,8 @@ class Object(object):
                  pos: pg.Vector2,
                  mass: Real=1,
                  force: pg.Vector2=(0, 0),
-                 fixed: bool=0) -> None:
+                 fixed: bool=0,
+                 whitelist: Optional[set[type]]=set()) -> None:
         self._level = None
         self._last_tiles = set()
         self._pos = pg.Vector2(pos)
@@ -21,6 +23,9 @@ class Object(object):
         self._mass = mass
         self._force = pg.Vector2(force)
         self._fixed = fixed
+        if whitelist is None: # whitelist won't include base class
+            whitelist = set()
+        self._whitelist = whitelist
 
     @classmethod
     def load(cls: type, data: dict) -> Self:
@@ -66,13 +71,17 @@ class Object(object):
     def fixed(self: Self, value: bool) -> None:
         self._fixed = value
 
+    @property
+    def whitelist(self: Self) -> set[Object]:
+        return self._whitelist
+
+    @whitelist.setter
+    def whitelist(self: Self, value: set[Object]) -> None:
+        self._whitelist = value
+
     def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
         self._last_tiles = set()
         return self._last_tiles
-
-    # run jakobsen constraint
-    def _constrain(self: Self) -> None:
-        pass
 
     def _verlet(self: Self,
                 prev_pos: pg.Vector2,
@@ -83,6 +92,10 @@ class Object(object):
         new_prev_pos = pos.copy()
         pos += pos - prev_pos + accel * timestep_sq
         prev_pos.update(new_prev_pos)
+
+    # solve constraints
+    def _constrain(self: Self, objects: set[Object]) -> None:
+        pass
 
     # run one timestep
     def update(self: Self,
@@ -98,6 +111,7 @@ class Object(object):
             (self._force + force) / self._mass,
             timestep_sq,
         )
+        self._constrain(objects)
 
     # t is interpolant for interpolated rendering
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
@@ -110,8 +124,11 @@ class Circle(Object):
                  radius: Real,
                  mass: Real=1,
                  force: pg.Vector2=(0, 0),
-                 fixed: bool=0) -> None:
-        super().__init__(pos, mass, force, fixed)
+                 fixed: bool=0,
+                 whitelist: Optional[set[type]]=None) -> None:
+        if whitelist is None:
+            whitelist = {Circle}
+        super().__init__(pos, mass, force, fixed, whitelist)
         self.radius = radius
 
     @property
@@ -146,15 +163,11 @@ class Circle(Object):
         self._last_tiles = tiles
         return tiles
 
-    def update(self: Self,
-               timestep_sq: Real,
-               objects: set[Object]=set(),
-               force: pg.Vector2=(0, 0)) -> None:
-        super().update(timestep_sq, objects, force)
+    def _constrain(self: Self, objects: set[Object]) -> None:
         for obj in objects:
             if obj is self:
                 continue
-            if isinstance(obj, Circle):
+            if Circle in self._whitelist and isinstance(obj, Circle):
                 diff = obj._pos - self._pos
                 cur_dist = diff.magnitude()
                 new_dist = self._radius + obj._radius
@@ -192,11 +205,19 @@ class Gon(Object):
                  connections: tuple[tuple[int, int]],
                  stiffness: int=1,
                  average: bool=0,
-                 force: pg.Vector2=(0, 0)) -> None:
+                 force: pg.Vector2=(0, 0),
+                 whitelist: Optional[set[type]]={Circle}) -> None:
         mass = 0
         for vertex in vertices:
             mass += vertex._mass
-        super().__init__(vertices[0]._pos, mass, force)
+        if whitelist is None:
+            whitelist = {Circle, Gon}
+        super().__init__(
+            vertices[0]._pos,
+            mass,
+            force,
+            whitelist=whitelist,
+        )
         self._vertices = vertices
         self.connections = connections
         self._stiffness = stiffness
@@ -247,6 +268,37 @@ class Gon(Object):
     def stiffness(self: Self, value: bool) -> None:
         self._average = value
 
+    def _tiles(self: Self, tilesize_inv: Real) -> None:
+        tiles = set()
+        top = math.inf
+        bottom = -math.inf
+        left = math.inf
+        right = -math.inf
+        for vertex in self._vertices:
+            y = vertex._pos[1] - vertex._radius
+            if y < top:
+                top = y
+            y = vertex._pos[1] + vertex._radius
+            if y > bottom:
+                bottom = y
+            x = vertex._pos[0] - vertex._radius
+            if x < left:
+                left = x
+            x = vertex._pos[0] + vertex._radius
+            if x > right:
+                right = x
+        for y in range(
+            math.floor(top * tilesize_inv),
+            math.floor(bottom * tilesize_inv) + 1,
+        ):
+            for x in range(
+                math.floor(left * tilesize_inv),
+                math.floor(right * tilesize_inv) + 1,
+            ):
+                tiles.add((x, y))
+        self._last_tiles = tiles
+        return tiles
+
     def _collide_circle(self: Self, obj: Circle) -> None:
         for connection in self._connections:
             # https://stackoverflow.com/a/1501725/24845999
@@ -279,49 +331,13 @@ class Gon(Object):
                 if not vertex2._fixed:
                     vertex2._pos -= rel
 
-    def _tiles(self: Self, tilesize_inv: Real) -> None:
-        tiles = set()
-        top = math.inf
-        bottom = -math.inf
-        left = math.inf
-        right = -math.inf
-        for vertex in self._vertices:
-            y = vertex._pos[1] - vertex._radius
-            if y < top:
-                top = y
-            y = vertex._pos[1] + vertex._radius
-            if y > bottom:
-                bottom = y
-            x = vertex._pos[0] - vertex._radius
-            if x < left:
-                left = x
-            x = vertex._pos[0] + vertex._radius
-            if x > right:
-                right = x
-        for y in range(
-            math.floor(top * tilesize_inv),
-            math.floor(bottom * tilesize_inv) + 1,
-        ):
-            for x in range(
-                math.floor(left * tilesize_inv),
-                math.floor(right * tilesize_inv) + 1,
-            ):
-                tiles.add((x, y))
-        self._last_tiles = tiles
-        return tiles
-
-    def update(self: Self,
-               timestep_sq: Real,
-               objects: set[Object],
-               force: pg.Vector2=(0, 0)) -> None:
-        for vertex in self._vertices:
-            vertex.update(timestep_sq, objects, self._force + force)
+    def _constrain(self: Self, objects: set[Object]) -> None:
         for obj in objects:
             if obj is self:
                 continue
-            if isinstance(obj, Circle):
+            if Circle in self._whitelist and isinstance(obj, Circle):
                 self._collide_circle(obj)
-            if isinstance(obj, Gon):
+            if Gon in self._whitelist and isinstance(obj, Gon):
                 for vertex in obj._vertices:
                     self._collide_circle(vertex)
         for i in range(self._stiffness):
@@ -362,6 +378,14 @@ class Gon(Object):
                             self._vertices[connection[1]]._pos -= rel
             for dex, delta in deltas.items():
                 self._vertices[dex]._pos += delta[0] / delta[1]
+
+    def update(self: Self,
+               timestep_sq: Real,
+               objects: set[Object],
+               force: pg.Vector2=(0, 0)) -> None:
+        for vertex in self._vertices:
+            vertex.update(timestep_sq, objects, self._force + force)
+        self._constrain(objects)
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
         for vertex in self._vertices:
