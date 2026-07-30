@@ -37,7 +37,7 @@ class Game(object):
         self._running = 0
         
         objects = set()
-        for i in range(100):
+        for i in range(300):
             objects.add(Circle((2 + i * 2, 20), 4, force=pg.Vector2(0, 320)))
         objects.add(Gon(
             (Circle((210, 210), 2, force=pg.Vector2(0, 320), fixed=0),

@@ -22,6 +22,7 @@ class Object(object):
         self._pos = pg.Vector2(pos)
         self._prev_pos = pg.Vector2(pos)
         self._mass = mass
+        self._mass_inv = 1 / mass
         self._force = pg.Vector2(force)
         self._fixed = fixed
         if whitelist is None: # whitelist won't include base class
@@ -56,6 +57,7 @@ class Object(object):
     @mass.setter
     def mass(self: Self, value: Real) -> None:
         self._mass = value
+        self._mass_inv = 1 / value
 
     @property
     def force(self: Self) -> pg.Vector2:
@@ -408,7 +410,9 @@ class Gon(Object):
                                 vector[0] += rel
                                 vector[1] += 1
                         else:
-                            self._vertices[connection[0]]._pos += rel
+                            self._vertices[connection[0]]._pos += (
+                                rel * self._vertices[connection[0]]._mass_inv
+                            )
                     if not self._vertices[connection[1]]._fixed:
                         if self._average:
                             vector = deltas.get(connection[1])
@@ -418,9 +422,13 @@ class Gon(Object):
                                 vector[0] -= rel
                                 vector[1] += 1
                         else:
-                            self._vertices[connection[1]]._pos -= rel
+                            self._vertices[connection[1]]._pos -= (
+                                rel * self._vertices[connection[1]]._mass_inv
+                            )
             for dex, delta in deltas.items():
-                self._vertices[dex]._pos += delta[0] / delta[1]
+                self._vertices[dex]._pos += (
+                    delta[0] / delta[1] * self._vertices[dex]._mass_inv
+                )
 
     def update(self: Self,
                timestep_sq: Real,
