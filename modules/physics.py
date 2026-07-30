@@ -329,12 +329,15 @@ class Gon(Object):
             diff = (
                 self._vertices[value[2]]._pos - self._vertices[value[1]]._pos
             )
+            self._texture_base_magnitude = diff.magnitude()
+            if self._texture_base_magnitude == 0:
+                self._texture_pivot = (value[0], value[1], -1)
+                return None
+            self._texture_base_angle = diff.angle
             self._texture_base_offset = pg.Vector2(
                 self._texture_pivot[0][0] - self._texture.width / 2,
                 self._texture_pivot[0][1] - self._texture.height / 2,
             )
-            self._texture_base_angle = diff.angle
-            self._texture_base_magnitude = diff.magnitude()
 
     def _tiles(self: Self, tilesize_inv: Real) -> None:
         tiles = set()
