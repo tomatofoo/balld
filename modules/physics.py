@@ -7,6 +7,7 @@ from typing import Self
 from typing import Optional
 
 import pygame as pg
+from pygame.typing import Point
 
 
 class Object(object):
@@ -28,7 +29,7 @@ class Object(object):
         if whitelist is None: # whitelist won't include base class
             whitelist = set()
         self._whitelist = whitelist
-        self._texture = texture
+        self.texture = texture # so texture is handeld by child classes
 
     @classmethod
     def load(cls: type, data: dict) -> Self:
@@ -142,9 +143,8 @@ class Circle(Object):
                  texture: Optional[pg.Surface]=None) -> None:
         if whitelist is None:
             whitelist = {Circle}
-        super().__init__(pos, mass, force, fixed, whitelist)
+        super().__init__(pos, mass, force, fixed, whitelist, texture)
         self.radius = radius
-        self.texture = texture
 
     @property
     def bound(self: Self) -> pg.FRect:
@@ -240,7 +240,7 @@ class Gon(Object):
                  force: pg.Vector2=(0, 0),
                  whitelist: Optional[set[type]]={Circle},
                  texture: Optional[pg.Surface]=None,
-                 texture_pivot: tuple[int, int]=(-1, -1)) -> None:
+                 texture_pivot: Optional[tuple[Point, int, int]]=None) -> None:
         mass = 0
         for vertex in vertices:
             mass += vertex._mass
@@ -257,7 +257,7 @@ class Gon(Object):
         self.connections = connections
         self._stiffness = stiffness
         self._average = average
-        self._texture_pivot = texture_pivot
+        self.texture_pivot = texture_pivot
 
     @classmethod
     def load(self: Self, data: dict) -> None:
@@ -311,7 +311,24 @@ class Gon(Object):
     @texture.setter
     def texture(self: Self, value: Optional[pg.Surface]) -> None:
         self._texture = value
-        # TODO: EDIT THIS TO ADD THE ROTATION STUFF
+
+    @property
+    def texture_pivot(self: Self) -> tuple[int, int]:
+        return self._texture_pivot
+
+    @texture_pivot.setter
+    def texture_pivot(self: Self, value: tuple[Point, int, int]) -> None:
+        self._texture_pivot = value
+        if value is not None and value[2] != -1:
+            diff = (
+                self._vertices[value[2]]._pos - self._vertices[value[1]]._pos
+            )
+            self._texture_base_offset = pg.Vector2(
+                self._texture_pivot[0][0] - self._texture.width / 2,
+                self._texture_pivot[0][1] - self._texture.height / 2,
+            )
+            self._texture_base_angle = diff.angle
+            self._texture_base_magnitude = diff.magnitude()
 
     def _tiles(self: Self, tilesize_inv: Real) -> None:
         tiles = set()
@@ -441,16 +458,58 @@ class Gon(Object):
         self._constrain(objects)
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
-        for vertex in self._vertices:
-            vertex.render(surf, t)
-        for connection in self._connections:
-            color = (255, 255, 255) if connection[2] else (0, 0, 255)
-            pg.draw.line(
-                surf,
-                color,
-                self._vertices[connection[0]]._pos,
-                self._vertices[connection[1]]._pos,
-            )
+        if self._texture is None:
+            for vertex in self._vertices:
+                vertex.render(surf, t)
+            for connection in self._connections:
+                color = (255, 255, 255) if connection[2] else (0, 0, 255)
+                pg.draw.line(
+                    surf,
+                    color,
+                    self._vertices[connection[0]]._pos,
+                    self._vertices[connection[1]]._pos,
+                )
+        elif self._texture_pivot is not None:
+            """
+            for vertex in self._vertices:
+                vertex.render(surf, t)
+            for connection in self._connections:
+                color = (255, 255, 255) if connection[2] else (0, 0, 255)
+                pg.draw.line(
+                    surf,
+                    color,
+                    self._vertices[connection[0]]._pos,
+                    self._vertices[connection[1]]._pos,
+                )
+            """
+            if self._texture_pivot[1] != -1:
+                diff = (
+                    self._vertices[self._texture_pivot[2]]._pos
+                    - self._vertices[self._texture_pivot[1]]._pos
+                )
+                angle = diff.angle - self._texture_base_angle
+                scale = diff.magnitude() / self._texture_base_magnitude
+                texture = pg.transform.rotate(
+                    pg.transform.scale(
+                        self._texture,
+                        (self._texture.width * scale,
+                         self._texture.height * scale)
+                    ),
+                    -angle,
+                )
+                offset = self._texture_base_offset.rotate(angle)
+                surf.blit(
+                    texture,
+                    self._vertices[self._texture_pivot[1]]._pos
+                    - (texture.width / 2, texture.height / 2)
+                    - offset,
+                )
+            else:
+                surf.blit(
+                    self._texture,
+                    self._vertices[self._texture_pivot[1]]._pos
+                    - self._texture_pivot[0],
+                )
 
 
 KEY = { # key used when loading level files
