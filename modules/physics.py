@@ -15,7 +15,8 @@ class Object(object):
                  mass: Real=1,
                  force: pg.Vector2=(0, 0),
                  fixed: bool=0,
-                 whitelist: Optional[set[type]]=set()) -> None:
+                 whitelist: Optional[set[type]]=set(),
+                 texture: Optional[pg.Surface]=None) -> None:
         self._level = None
         self._last_tiles = set()
         self._pos = pg.Vector2(pos)
@@ -26,6 +27,7 @@ class Object(object):
         if whitelist is None: # whitelist won't include base class
             whitelist = set()
         self._whitelist = whitelist
+        self._texture = texture
 
     @classmethod
     def load(cls: type, data: dict) -> Self:
@@ -79,6 +81,14 @@ class Object(object):
     def whitelist(self: Self, value: set[Object]) -> None:
         self._whitelist = value
 
+    @property
+    def texture(self: Self) -> Optional[pg.Surface]:
+        return self._texture
+
+    @texture.setter
+    def texture(self: Self, value: Optional[pg.Surface]) -> None:
+        self._texture = value
+
     def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
         self._last_tiles = set()
         return self._last_tiles
@@ -115,7 +125,8 @@ class Object(object):
 
     # t is interpolant for interpolated rendering
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
-        pass
+        if self._texture is not None:
+            surf.blit(self._texture, self._pos)
 
 
 class Circle(Object):
@@ -125,11 +136,13 @@ class Circle(Object):
                  mass: Real=1,
                  force: pg.Vector2=(0, 0),
                  fixed: bool=0,
-                 whitelist: Optional[set[type]]=None) -> None:
+                 whitelist: Optional[set[type]]=None,
+                 texture: Optional[pg.Surface]=None) -> None:
         if whitelist is None:
             whitelist = {Circle}
         super().__init__(pos, mass, force, fixed, whitelist)
         self.radius = radius
+        self.texture = texture
 
     @property
     def bound(self: Self) -> pg.FRect:
@@ -148,6 +161,19 @@ class Circle(Object):
     def radius(self: Self, value: Real) -> None:
         self._radius = value
         self._diameter = self._radius * 2
+
+    @property
+    def texture(self: Self) -> Optional[pg.Surface]:
+        return self._texture
+
+    @texture.setter
+    def texture(self: Self, value: Optional[pg.Surface]) -> None:
+        self._texture = value
+        if value is not None:
+            self._texture_offset = (
+                -self._texture.width * 0.5,
+                -self._texture.height * 0.5,
+            )
 
     def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
         tiles = set()
@@ -191,12 +217,16 @@ class Circle(Object):
             self._pos[0] = self._radius
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
-        pg.draw.circle(
-            surf,
-            (255, 255, 255),
-            self._prev_pos.lerp(self._pos, t),
-            self._radius,
-        )
+        pos = self._prev_pos.lerp(self._pos, t)
+        if self._texture is None:
+            pg.draw.circle(
+                surf,
+                (255, 255, 255),
+                pos,
+                self._radius,
+            )
+        else:
+            surf.blit(self._texture, self._pos - self._texture_offset)
 
 
 class Gon(Object):
@@ -206,7 +236,9 @@ class Gon(Object):
                  stiffness: int=1,
                  average: bool=0,
                  force: pg.Vector2=(0, 0),
-                 whitelist: Optional[set[type]]={Circle}) -> None:
+                 whitelist: Optional[set[type]]={Circle},
+                 texture: Optional[pg.Surface]=None,
+                 texture_pivot: tuple[int, int]=(-1, -1)) -> None:
         mass = 0
         for vertex in vertices:
             mass += vertex._mass
@@ -217,11 +249,13 @@ class Gon(Object):
             mass,
             force,
             whitelist=whitelist,
+            texture=texture,
         )
         self._vertices = vertices
         self.connections = connections
         self._stiffness = stiffness
         self._average = average
+        self._texture_pivot = texture_pivot
 
     @classmethod
     def load(self: Self, data: dict) -> None:
@@ -267,6 +301,15 @@ class Gon(Object):
     @stiffness.setter
     def stiffness(self: Self, value: bool) -> None:
         self._average = value
+
+    @property
+    def texture(self: Self) -> Optional[pg.Surface]:
+        return self._texture
+
+    @texture.setter
+    def texture(self: Self, value: Optional[pg.Surface]) -> None:
+        self._texture = value
+        # TODO: EDIT THIS TO ADD THE ROTATION STUFF
 
     def _tiles(self: Self, tilesize_inv: Real) -> None:
         tiles = set()
