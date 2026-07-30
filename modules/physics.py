@@ -173,8 +173,8 @@ class Circle(Object):
         self._texture = value
         if value is not None:
             self._texture_offset = (
-                -self._texture.width * 0.5,
-                -self._texture.height * 0.5,
+                self._texture.width * 0.5,
+                self._texture.height * 0.5,
             )
 
     def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
@@ -514,6 +514,7 @@ class Gon(Object):
 
 KEY = { # key used when loading level files
     'object': Object,
+    'circle': Circle,
     'gon': Gon,
 }
 

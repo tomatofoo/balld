@@ -44,6 +44,7 @@ class Game(object):
                 radius=4,
                 mass=1,
                 force=pg.Vector2(0, 320),
+                texture=pg.image.load('circle.png').convert_alpha(),
             ))
         radius = 2
         objects.add(Gon(
