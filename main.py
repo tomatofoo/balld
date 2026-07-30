@@ -37,36 +37,44 @@ class Game(object):
         self._running = 0
         
         objects = set()
+        length = 10
         for i in range(300):
-            objects.add(Circle((2 + i * 2, 20), 4, mass=1, force=pg.Vector2(0, 320)))
+            objects.add(Circle(
+                (20 + i % length * 8, 20 + i // length * 8),
+                radius=4,
+                mass=1,
+                force=pg.Vector2(0, 320),
+            ))
+        radius = 2
         objects.add(Gon(
-            (Circle((210, 210), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((250, 210), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((250, 250), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((210, 250), 2, force=pg.Vector2(0, 320), fixed=0)),
+            (Circle((210, 210), radius, force=pg.Vector2(0, 320), fixed=0),
+
+             Circle((250, 210), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((250, 250), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((210, 250), radius, force=pg.Vector2(0, 320), fixed=0)),
             ((0, 2, 0), (1, 3, 0), (0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 1)),
         ))
         objects.add(Gon(
-            (Circle((150, 60), 2, force=pg.Vector2(0, 320), fixed=1),
-             Circle((150, 100), 2, force=pg.Vector2(0, 320), fixed=1),
-             Circle((110, 100), 2, force=pg.Vector2(0, 320), fixed=1)),
+            (Circle((150,  60), radius, force=pg.Vector2(0, 320), fixed=1),
+             Circle((150, 100), radius, force=pg.Vector2(0, 320), fixed=1),
+             Circle((110, 100), radius, force=pg.Vector2(0, 320), fixed=1)),
             ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
         ))
         # THE BEHEMOTH
         objects.add(Gon(
-            (Circle((180, 135), 2, force=pg.Vector2(0, 320), fixed=1),
-             Circle((175, 130), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((185, 130), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((185, 140), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((175, 140), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((175, 80), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((185, 80), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((175, 190), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((185, 190), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((125, 130), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((125, 140), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((235, 130), 2, force=pg.Vector2(0, 320), fixed=0),
-             Circle((235, 140), 2, force=pg.Vector2(0, 320), fixed=0)),
+            (Circle((180, 135), radius, force=pg.Vector2(0, 320), fixed=1),
+             Circle((175, 130), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((185, 130), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((185, 140), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((175, 140), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((175,  80), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((185,  80), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((175, 190), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((185, 190), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((125, 130), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((125, 140), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((235, 130), radius, force=pg.Vector2(0, 320), fixed=0),
+             Circle((235, 140), radius, force=pg.Vector2(0, 320), fixed=0)),
             ((0, 1,  0), (0, 2, 0),  (0, 3,  0), (0,  4,  0),
              (1, 2,  0), (2, 3, 0),  (3, 4,  0), (4,  1,  0),
              (5, 8,  0), (6, 7, 0),  (9, 12, 0), (10, 11, 0),
