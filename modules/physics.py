@@ -204,10 +204,16 @@ class Circle(Object):
                     if not (self._fixed or obj._fixed):
                         dist *= 0.5
                     rel = diff / cur_dist * dist
+                    avg = 0
                     if not obj._fixed:
-                        obj._pos += rel
+                        avg += obj._mass_inv
                     if not self._fixed:
-                        self._pos -= rel
+                        avg += self._mass_inv
+                    avg *= 0.5
+                    if not obj._fixed:
+                        obj._pos += rel * obj._mass_inv / avg
+                    if not self._fixed:
+                        self._pos -= rel * self._mass_inv / avg
         # TEMP
         if self._pos[1] > 270 - self._radius:
             self._pos[1] = 270 - self._radius
@@ -319,7 +325,7 @@ class Gon(Object):
     @texture_pivot.setter
     def texture_pivot(self: Self, value: tuple[Point, int, int]) -> None:
         self._texture_pivot = value
-        if value is not None and value[2] != -1:
+        if self._texture is not None and value is not None and value[2] != -1:
             diff = (
                 self._vertices[value[2]]._pos - self._vertices[value[1]]._pos
             )
@@ -374,8 +380,7 @@ class Gon(Object):
             vertex2 = self._vertices[connection[1]]
             diff = vertex2._pos - vertex1._pos
             t = pg.math.clamp(
-                diff.dot(obj._pos - vertex1._pos)
-                / diff.magnitude_squared(),
+                diff.dot(obj._pos - vertex1._pos) / diff.magnitude_squared(),
                 0, 1,
             )
             proj = vertex1._pos + t * diff
@@ -388,12 +393,25 @@ class Gon(Object):
                 ):
                     dist *= 0.5
                 rel = diff / cur_dist * dist
+                avg = 0
+                mult = 0
                 if not obj._fixed:
-                    obj._pos += rel
+                    avg += obj._mass_inv
                 if not vertex1._fixed:
-                    vertex1._pos -= rel
+                    avg += vertex1._mass_inv
+                    mult += vertex1._mass_inv
                 if not vertex2._fixed:
-                    vertex2._pos -= rel
+                    avg += vertex2._mass_inv
+                    mult += vertex2._mass_inv
+                avg *= 0.5
+                if avg:
+                    mult /= avg
+                    if not obj._fixed:
+                        obj._pos += rel * obj._mass_inv / avg
+                    if not vertex1._fixed:
+                        vertex1._pos -= rel * mult
+                    if not vertex2._fixed:
+                        vertex2._pos -= rel * mult
 
     def _constrain(self: Self, objects: set[Object]) -> None:
         for obj in objects:

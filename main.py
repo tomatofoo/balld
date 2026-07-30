@@ -46,14 +46,26 @@ class Game(object):
                 force=pg.Vector2(0, 320),
                 texture=pg.image.load('circle.png').convert_alpha(),
             ))
-        radius = 2
+        objects.add(Circle(
+            (8, 8),
+            radius=8,
+            mass=4,
+            force=pg.Vector2(0, 1280),
+        ))
+        objects.add(Circle(
+            (8, 16),
+            radius=4,
+            mass=1,
+            force=pg.Vector2(0, 320),
+        ))
+        radius = 0
         objects.add(Gon(
             (Circle((210, 210), radius, force=pg.Vector2(0, 320), fixed=0),
              Circle((250, 210), radius, force=pg.Vector2(0, 320), fixed=0),
              Circle((250, 250), radius, force=pg.Vector2(0, 320), fixed=0),
              Circle((210, 250), radius, force=pg.Vector2(0, 320), fixed=0)),
             ((0, 2, 0), (1, 3, 0), (0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 1)),
-            texture=pg.image.load('square.png').convert_alpha(),
+            # texture=pg.image.load('square.png').convert_alpha(),
             texture_pivot=((0, 0), 0, 2),
         ))
         objects.add(Gon(
@@ -90,7 +102,7 @@ class Game(object):
              (1, 9,  1), (4, 10, 1), (9,  10, 1),
              (2, 11, 1), (3, 12, 1), (11, 12, 1)),
             stiffness=5,
-            texture=pg.image.load('wheel.png').convert_alpha(),
+            # texture=pg.image.load('wheel.png').convert_alpha(),
             texture_pivot=((55, 55), 0, 1),
         ))
         self._level = Level(objects, tilesize=8)
