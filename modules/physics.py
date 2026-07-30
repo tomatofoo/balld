@@ -374,9 +374,9 @@ class Gon(Object):
                 if not obj._fixed:
                     obj._pos += rel
                 if not vertex1._fixed:
-                    vertex1._pos -= rel * (1 - t)
+                    vertex1._pos -= rel
                 if not vertex2._fixed:
-                    vertex2._pos -= rel * t
+                    vertex2._pos -= rel
 
     def _constrain(self: Self, objects: set[Object]) -> None:
         for obj in objects:
