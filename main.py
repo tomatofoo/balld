@@ -44,7 +44,7 @@ class Game(object):
                 radius=4,
                 mass=1,
                 force=pg.Vector2(0, 320),
-                # texture=pg.image.load('circle.png').convert_alpha(),
+                texture=pg.image.load('circle.png').convert_alpha(),
             ))
         objects.add(Circle(
             (8, 8),
@@ -102,7 +102,7 @@ class Game(object):
              (1, 9,  1), (4, 10, 1), (9,  10, 1),
              (2, 11, 1), (3, 12, 1), (11, 12, 1)),
             stiffness=5,
-            # texture=pg.image.load('wheel.png').convert_alpha(),
+            texture=pg.image.load('wheel.png').convert_alpha(),
             texture_pivot=((55, 55), 0, 5),
         ))
         self._level = Level(objects, tilesize=8)
