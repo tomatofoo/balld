@@ -402,19 +402,21 @@ class Gon(Object):
                     avg += obj._mass_inv
                 if not vertex1._fixed:
                     avg += vertex1._mass_inv
-                    mult += vertex1._mass_inv
                 if not vertex2._fixed:
                     avg += vertex2._mass_inv
-                    mult += vertex2._mass_inv
-                avg *= 0.5
+                avg /= 3
                 if avg:
-                    mult /= avg
+                    # not perfect collision resolution but good enough
                     if not obj._fixed:
                         obj._pos += rel * obj._mass_inv / avg
                     if not vertex1._fixed:
-                        vertex1._pos -= rel * mult
+                        vertex1._pos -= (
+                            rel * vertex1._mass_inv / avg * (1 - t) * 2
+                        )
                     if not vertex2._fixed:
-                        vertex2._pos -= rel * mult
+                        vertex2._pos -= (
+                            rel * vertex2._mass_inv / avg * t * 2
+                        )
 
     def _constrain(self: Self, objects: set[Object]) -> None:
         for obj in objects:
