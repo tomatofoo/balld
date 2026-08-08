@@ -58,7 +58,7 @@ class Game(object):
             mass=1,
             force=pg.Vector2(0, 320),
         ))
-        radius = 0
+        radius = 4
         objects.add(Gon(
             (Circle((210, 210), radius, force=pg.Vector2(0, 320), fixed=0),
              Circle((250, 210), radius, force=pg.Vector2(0, 320), fixed=0),
@@ -131,7 +131,7 @@ class Game(object):
                                 clicking = [obj, obj.fixed]
                         elif isinstance(obj, Gon):
                             for vertex in obj.vertices:
-                                if vertex.pos.distance_to(pos) < vertex.radius:
+                                if vertex.pos.distance_to(pos) <= vertex.radius:
                                     clicking = [vertex, vertex.fixed]
                 elif event.type == pg.MOUSEMOTION and clicking is not None:
                     clicking[0].pos = event.pos[0] / 2, event.pos[1] / 2

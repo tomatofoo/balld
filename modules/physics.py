@@ -205,11 +205,15 @@ class Circle(Object):
                         dist *= 0.5
                     rel = diff / cur_dist * dist
                     avg = 0
+                    count = 0
                     if not obj._fixed:
                         avg += obj._mass_inv
+                        count += 1
                     if not self._fixed:
                         avg += self._mass_inv
-                    avg *= 0.5
+                        count += 1
+                    if count:
+                        avg /= count
                     if not obj._fixed:
                         obj._pos += rel * obj._mass_inv / avg
                     if not self._fixed:
@@ -397,18 +401,22 @@ class Gon(Object):
                     dist *= 0.5
                 rel = diff / cur_dist * dist
                 avg = 0
-                mult = 0
+                count = 0
                 if not obj._fixed:
                     avg += obj._mass_inv
+                    count += 1
                 if not vertex1._fixed:
                     avg += vertex1._mass_inv
+                    count += 1
                 if not vertex2._fixed:
                     avg += vertex2._mass_inv
-                avg /= 3
+                    count += 1
                 if avg:
+                    avg /= count
                     # not perfect collision resolution but good enough
                     if not obj._fixed:
-                        obj._pos += rel * obj._mass_inv / avg
+                        # obj._pos += rel * obj._mass_inv / avg
+                        obj._pos += rel
                     if not vertex1._fixed:
                         vertex1._pos -= (
                             rel * vertex1._mass_inv / avg * (1 - t) * 2
@@ -493,18 +501,6 @@ class Gon(Object):
                     self._vertices[connection[1]]._pos,
                 )
         elif self._texture_pivot is not None:
-            """
-            for vertex in self._vertices:
-                vertex.render(surf, t)
-            for connection in self._connections:
-                color = (255, 255, 255) if connection[2] else (0, 0, 255)
-                pg.draw.line(
-                    surf,
-                    color,
-                    self._vertices[connection[0]]._pos,
-                    self._vertices[connection[1]]._pos,
-                )
-            """
             if self._texture_pivot[1] != -1:
                 diff = (
                     self._vertices[self._texture_pivot[2]]._pos
