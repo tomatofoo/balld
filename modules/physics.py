@@ -117,13 +117,13 @@ class Object(object):
                force: pg.Vector2=(0, 0)) -> None:
         if self._fixed:
             self._prev_pos = self._pos.copy()
-            return None
-        self._verlet(
-            self._prev_pos,
-            self._pos,
-            (self._force + force) / self._mass,
-            timestep_sq,
-        )
+        else:
+            self._verlet(
+                self._prev_pos,
+                self._pos,
+                (self._force + force) / self._mass,
+                timestep_sq,
+            )
         self._constrain(objects)
 
     # t is interpolant for interpolated rendering
