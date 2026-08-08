@@ -58,7 +58,7 @@ class Game(object):
             mass=1,
             force=pg.Vector2(0, 320),
         ))
-        radius = 2
+        radius = 0
         objects.add(Gon(
             (Circle((210, 210), radius, force=pg.Vector2(0, 320), fixed=0),
              Circle((250, 210), radius, force=pg.Vector2(0, 320), fixed=0),
