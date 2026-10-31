@@ -114,8 +114,9 @@ class Object(object):
     def update(self: Self,
                timestep_sq: Real,
                objects: set[Object]=set(),
-               force: pg.Vector2=(0, 0)) -> None:
-        if self._fixed:
+               force: pg.Vector2=pg.Vector2(0, 0),
+               fixed: bool=0) -> None:
+        if self._fixed or fixed:
             self._prev_pos = self._pos.copy()
         else:
             self._verlet(
@@ -248,6 +249,7 @@ class Gon(Object):
                  stiffness: int=1,
                  average: bool=0,
                  force: pg.Vector2=(0, 0),
+                 fixed: bool=0,
                  whitelist: Optional[set[type]]={Circle},
                  texture: Optional[pg.Surface]=None,
                  texture_pivot: Optional[tuple[Point, int, int]]=None) -> None:
@@ -260,6 +262,7 @@ class Gon(Object):
             vertices[0]._pos,
             mass,
             force,
+            fixed,
             whitelist=whitelist,
             texture=texture,
         )
@@ -267,6 +270,7 @@ class Gon(Object):
         self.connections = connections
         self._stiffness = stiffness
         self._average = average
+        # (pos for vertex 1, vertex 1, vertex 2)
         self.texture_pivot = texture_pivot
 
     @classmethod
@@ -396,7 +400,9 @@ class Gon(Object):
             if 0 < cur_dist < obj._radius:
                 dist = cur_dist - obj._radius
                 if not (
-                    obj._fixed or (vertex1._fixed and vertex2._fixed)
+                    obj._fixed
+                    or (vertex1._fixed and vertex2._fixed)
+                    or self._fixed
                 ):
                     dist *= 0.5
                 rel = diff / cur_dist * dist
@@ -405,10 +411,10 @@ class Gon(Object):
                 if not obj._fixed:
                     avg += obj._mass_inv
                     count += 1
-                if not vertex1._fixed:
+                if not (vertex1._fixed or self._fixed):
                     avg += vertex1._mass_inv
                     count += 1
-                if not vertex2._fixed:
+                if not (vertex2._fixed or self._fixed):
                     avg += vertex2._mass_inv
                     count += 1
                 if avg:
@@ -417,11 +423,11 @@ class Gon(Object):
                     if not obj._fixed:
                         # obj._pos += rel * obj._mass_inv / avg
                         obj._pos += rel
-                    if not vertex1._fixed:
+                    if not (vertex1._fixed or self._fixed):
                         vertex1._pos -= (
                             rel * vertex1._mass_inv / avg * (1 - t) * 2
                         )
-                    if not vertex2._fixed:
+                    if not (vertex2._fixed or self._fixed):
                         vertex2._pos -= (
                             rel * vertex2._mass_inv / avg * t * 2
                         )
@@ -483,9 +489,15 @@ class Gon(Object):
     def update(self: Self,
                timestep_sq: Real,
                objects: set[Object],
-               force: pg.Vector2=(0, 0)) -> None:
+               force: pg.Vector2=pg.Vector2(0, 0),
+               fixed: bool=0) -> None:
         for vertex in self._vertices:
-            vertex.update(timestep_sq, objects, self._force + force)
+            vertex.update(
+                timestep_sq,
+                objects,
+                self._force + force * vertex._mass / self._mass,
+                self._fixed or fixed,
+            )
         self._constrain(objects)
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
@@ -542,7 +554,8 @@ class Level(object):
     def __init__(self: Self,
                  objects: set[Object],
                  tilesize: Real=16,
-                 timestep: Real=0.01) -> None:
+                 timestep: Real=0.01,
+                 g: pg.Vector2=(0, 320)) -> None:
         # https://www.gafferongames.com/post/fix_your_timestep
         self._objects = objects
         for obj in objects:
@@ -551,6 +564,7 @@ class Level(object):
         self._update_sets()
         self.timestep = timestep
         self._accumulator = 0
+        self._g = pg.Vector2(g)
 
     @property
     def objects(self: Self) -> set[Object]:
@@ -582,6 +596,14 @@ class Level(object):
         self._timestep = value
         self._timestep_sq = self._timestep * self._timestep
 
+    @property
+    def g(self: Self) -> pg.Vector2:
+        return self._g
+
+    @g.setter
+    def g(self: Self, value: pg.Vector2) -> None:
+        self._g = pg.Vector2(value)
+
     @classmethod
     def load(cls: type, path: str) -> None:
         with open(path, 'r') as file:
@@ -609,7 +631,11 @@ class Level(object):
                 objects = set()
                 for tile in obj._last_tiles:
                     objects |= self._sets[tile]
-                obj.update(self._timestep_sq, objects)
+                obj.update(
+                    self._timestep_sq,
+                    objects,
+                    self._g * obj._mass
+                )
             self._accumulator -= self._timestep
 
     def render(self: Self, surf: pg.Surface) -> None:
