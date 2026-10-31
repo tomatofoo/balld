@@ -56,20 +56,8 @@ class Game(object):
             radius=4,
             mass=1,
         ))
-        radius = 0
-        """
-        objects.add(Gon(
-            (Circle((210, 210), radius, fixed=0),
-             Circle((250, 210), radius, fixed=0),
-             Circle((250, 250), radius, fixed=0),
-             Circle((210, 250), radius, fixed=0)),
-            ((0, 2, 0), (1, 3, 0), (0, 1, 1), (1, 2, 1), (2, 3, 1), (3, 0, 1)),
-            # texture=pg.image.load('square.png').convert_alpha(),
-            texture_pivot=((0, 0), 0, 2),
-        ))
-        """
         objects.add(preset('triangle_up_left', (100, 100), fixed=1))
-        """objects.add(preset('pinwheel', (180, 135)))"""
+        objects.add(preset('pinwheel', (180, 135)))
         self._level = Level(objects, tilesize=8)
 
     def run(self: Self) -> None:
