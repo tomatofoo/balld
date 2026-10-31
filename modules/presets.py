@@ -12,6 +12,24 @@ from modules.physics import Circle
 
 PRESETS = {
     'ball': {'obj': Circle((0, 0), 0, fixed=0)},
+    'triangle_up_left': {
+        'obj': Gon(
+            (Circle((-20,  -20), 0, fixed=0),
+             Circle((20,   20), 0, fixed=0),
+             Circle((-20, 20), 0, fixed=0)),
+            ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+        ),
+        'pivot': (0, 1),
+    },
+    'triangle_down_left': {
+        'obj': Gon(
+            (Circle((20,  -20), 0, fixed=0),
+             Circle((20,   20), 0, fixed=0),
+             Circle((-20, -20), 0, fixed=0)),
+            ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+        ),
+        'pivot': (0, 1),
+    },
     'pinwheel': {
         'obj': Gon(
             (Circle((0,    0), 0, fixed=1),

@@ -125,7 +125,7 @@ class Object(object):
                 (self._force + force) / self._mass,
                 timestep_sq,
             )
-        self._constrain(objects)
+        self._constrain(objects, fixed)
 
     # t is interpolant for interpolated rendering
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
@@ -192,7 +192,8 @@ class Circle(Object):
         self._last_tiles = tiles
         return tiles
 
-    def _constrain(self: Self, objects: set[Object]) -> None:
+    def _constrain(self: Self, objects: set[Object], fixed: bool=0) -> None:
+        fixed = self._fixed or fixed
         for obj in objects:
             if obj is self:
                 continue
@@ -202,7 +203,7 @@ class Circle(Object):
                 new_dist = self._radius + obj._radius
                 if 0 < cur_dist < new_dist:
                     dist = new_dist - cur_dist
-                    if not (self._fixed or obj._fixed):
+                    if not (obj._fixed or fixed):
                         dist *= 0.5
                     rel = diff / cur_dist * dist
                     avg = 0
@@ -210,14 +211,14 @@ class Circle(Object):
                     if not obj._fixed:
                         avg += obj._mass_inv
                         count += 1
-                    if not self._fixed:
+                    if not fixed:
                         avg += self._mass_inv
                         count += 1
                     if count:
                         avg /= count
                     if not obj._fixed:
                         obj._pos += rel * obj._mass_inv / avg
-                    if not self._fixed:
+                    if not fixed:
                         self._pos -= rel * self._mass_inv / avg
         # TEMP
         if self._pos[1] > 270 - self._radius:
@@ -378,7 +379,8 @@ class Gon(Object):
         self._last_tiles = tiles
         return tiles
 
-    def _collide_circle(self: Self, obj: Circle) -> None:
+    def _collide_circle(self: Self, obj: Circle, fixed: bool=0) -> None:
+        fixed = self._fixed or fixed
         for connection in self._connections:
             if not connection[2]:
                 continue
@@ -402,7 +404,7 @@ class Gon(Object):
                 if not (
                     obj._fixed
                     or (vertex1._fixed and vertex2._fixed)
-                    or self._fixed
+                    or fixed
                 ):
                     dist *= 0.5
                 rel = diff / cur_dist * dist
@@ -411,36 +413,35 @@ class Gon(Object):
                 if not obj._fixed:
                     avg += obj._mass_inv
                     count += 1
-                if not (vertex1._fixed or self._fixed):
+                if not (vertex1._fixed or fixed):
                     avg += vertex1._mass_inv
                     count += 1
-                if not (vertex2._fixed or self._fixed):
+                if not (vertex2._fixed or fixed):
                     avg += vertex2._mass_inv
                     count += 1
                 if avg:
                     avg /= count
                     # not perfect collision resolution but good enough
                     if not obj._fixed:
-                        # obj._pos += rel * obj._mass_inv / avg
-                        obj._pos += rel
-                    if not (vertex1._fixed or self._fixed):
+                        obj._pos += rel * obj._mass_inv / avg
+                    if not (vertex1._fixed or fixed):
                         vertex1._pos -= (
                             rel * vertex1._mass_inv / avg * (1 - t) * 2
                         )
-                    if not (vertex2._fixed or self._fixed):
+                    if not (vertex2._fixed or fixed):
                         vertex2._pos -= (
                             rel * vertex2._mass_inv / avg * t * 2
                         )
 
-    def _constrain(self: Self, objects: set[Object]) -> None:
+    def _constrain(self: Self, objects: set[Object], fixed: bool=0) -> None:
         for obj in objects:
             if obj is self:
                 continue
             if Circle in self._whitelist and isinstance(obj, Circle):
-                self._collide_circle(obj)
+                self._collide_circle(obj, fixed)
             if Gon in self._whitelist and isinstance(obj, Gon):
                 for vertex in obj._vertices:
-                    self._collide_circle(vertex)
+                    self._collide_circle(vertex, fixed)
         for i in range(self._stiffness):
             deltas = {}
             for dex, connection in enumerate(self._connections):
@@ -498,7 +499,7 @@ class Gon(Object):
                 self._force + force * vertex._mass / self._mass,
                 self._fixed or fixed,
             )
-        self._constrain(objects)
+        self._constrain(objects, fixed)
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
         if self._texture is None:
