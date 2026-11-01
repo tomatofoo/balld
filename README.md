@@ -1,6 +1,6 @@
 # Balld
 
-![Demo](https://raw.githubusercontent.com/tomatofoo/balld/main/videos/demo.mp4)
+https://github.com/user-attachments/assets/ff7f603b-b718-4997-b275-6634382ac81c
 
 This is a top-down ball physics puzzle game where you redirect balls that come 
 from the top to a win zone near the bottom. I used pygame-ce for the graphics 
