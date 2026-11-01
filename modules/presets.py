@@ -1,9 +1,11 @@
+import math
 import copy
 from typing import Self
 from typing import Optional
 from numbers import Real
 
 import pygame as pg
+from pygame.typing import Point
 
 from modules.physics import Object
 from modules.physics import Gon
@@ -11,13 +13,16 @@ from modules.physics import Circle
 
 
 PRESETS = {
-    'ball': {'obj': Circle((0, 0), 0, fixed=0)},
+    'miniball': {'obj': Circle((0, 0), 5, fixed=1)},
+    'fairball': {'obj': Circle((0, 0), 10, fixed=1)},
+    'megaball': {'obj': Circle((0, 0), 15, fixed=1)},
     'triangle_up_left': {
         'obj': Gon(
             (Circle((20,  20), 0, fixed=0),
              Circle((-20, 20), 0, fixed=0),
              Circle((20, -20), 0, fixed=0)),
             ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+            fixed=1,
         ),
         'pivot': (0, 1),
     },
@@ -27,6 +32,7 @@ PRESETS = {
              Circle((20,   20), 0, fixed=0),
              Circle((-20, -20), 0, fixed=0)),
             ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+            fixed=1,
         ),
         'pivot': (0, 1),
     },
@@ -36,6 +42,7 @@ PRESETS = {
              Circle((-20, -20), 0, fixed=0),
              Circle((20,   20), 0, fixed=0)),
             ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+            fixed=1,
         ),
         'pivot': (0, 1),
     },
@@ -45,6 +52,17 @@ PRESETS = {
              Circle((-20,  20), 0, fixed=0),
              Circle((20,  -20), 0, fixed=0)),
             ((0, 1, 1), (1, 2, 1), (0, 2, 1)),
+            fixed=1,
+        ),
+        'pivot': (0, 1),
+    },
+    'rocket': {
+        'obj': Gon(
+            (Circle((0, 0), 0),
+             Circle((-20, 20), 0),
+             Circle((20, 20), 0)),
+            ((0, 1, 1), (0, 2, 1), (1, 2, 1)),
+            fixed=1,
         ),
         'pivot': (0, 1),
     },
@@ -78,22 +96,65 @@ PRESETS = {
     },
 }
 
+def render_preset(key: str,
+                  radius: Real=0,
+                  texture: Optional[pg.Surface]=None,
+                  texture_pos: Optional[Point]=None) -> pg.Surface:
+    item = PRESETS[key]
+    obj = item['obj']
+    if isinstance(obj, Circle):
+        if radius == 0:
+            radius = obj._radius
+        left = 0
+        right = 0
+        top = 0
+        bottom = 0
+    elif isinstance(obj, Gon):
+        left = math.inf
+        right = -math.inf
+        top = math.inf
+        bottom = -math.inf
+        for vertex in obj._vertices:
+            if vertex._pos[0] < left:
+                left = vertex._pos[0]
+            if vertex._pos[0] > right:
+                right = vertex._pos[0]
+            if vertex._pos[1] < top:
+                top = vertex._pos[1]
+            if vertex._pos[1] > bottom:
+                bottom = vertex._pos[1]
+    size = (
+        right - left + radius * 2 + 3,
+        bottom - top + radius * 2 + 3,
+    )
+    pos = (-left + radius + 1, -top + radius + 1)
+    surf = pg.Surface(size)
+    surf.set_colorkey((0, 0, 0))
+    obj = preset(key, pos, radius, 0, texture, texture_pos)
+    obj.render(surf)
+
+    return surf
+
 def preset(key: str,
            pos: pg.Vector2,
            radius: Real=None,
-           fixed: bool=0,
+           fixed: Optional[bool]=None,
            texture: Optional[pg.Surface]=None,
-           texture_pos: Optional[pg.Vector2]=None) -> Object:
+           texture_pos: Optional[Point]=None) -> Object:
     item = PRESETS[key]
     obj = copy.deepcopy(item['obj'])
     obj._pos += pos
     obj._prev_pos += pos
-    obj._fixed = fixed
+    if fixed is not None:
+        obj._fixed = fixed
     obj._texture = texture
+    obj._data = key
     if isinstance(obj, Circle):
         if radius is not None:
-            vertex._radius = radius
+            obj._radius = radius
     elif isinstance(obj, Gon):
+        obj._pos = pos
+        obj._prev_pos = pos
         for vertex in obj._vertices:
             vertex._pos += pos
             vertex._prev_pos += pos

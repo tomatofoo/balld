@@ -17,7 +17,8 @@ class Object(object):
                  force: pg.Vector2=(0, 0),
                  fixed: bool=0,
                  whitelist: Optional[set[type]]=set(),
-                 texture: Optional[pg.Surface]=None) -> None:
+                 texture: Optional[pg.Surface]=None,
+                 data: object=None) -> None:
         self._level = None
         self._last_tiles = set()
         self._pos = pg.Vector2(pos)
@@ -30,6 +31,7 @@ class Object(object):
             whitelist = set()
         self._whitelist = whitelist
         self.texture = texture # so texture is handeld by child classes
+        self._data = data # optional data to mark object
 
     @classmethod
     def load(cls: type, data: dict) -> Self:
@@ -92,6 +94,14 @@ class Object(object):
     def texture(self: Self, value: Optional[pg.Surface]) -> None:
         self._texture = value
 
+    @property
+    def data(self: Self) -> object:
+        return self._data
+
+    @data.setter
+    def data(self: Self, value: object) -> None:
+        self._data = value
+
     def _tiles(self: Self, tilesize_inv: Real) -> set[tuple]:
         self._last_tiles = set()
         return self._last_tiles
@@ -141,10 +151,11 @@ class Circle(Object):
                  force: pg.Vector2=(0, 0),
                  fixed: bool=0,
                  whitelist: Optional[set[type]]=None,
-                 texture: Optional[pg.Surface]=None) -> None:
+                 texture: Optional[pg.Surface]=None,
+                 data: object=None) -> None:
         if whitelist is None:
             whitelist = {Circle}
-        super().__init__(pos, mass, force, fixed, whitelist, texture)
+        super().__init__(pos, mass, force, fixed, whitelist, texture, data)
         self.radius = radius
 
     @property
@@ -220,15 +231,6 @@ class Circle(Object):
                         obj._pos += rel * obj._mass_inv / avg
                     if not fixed:
                         self._pos -= rel * self._mass_inv / avg
-        # TEMP
-        if self._pos[1] > 270 - self._radius:
-            self._pos[1] = 270 - self._radius
-        if self._pos[1] < self._radius:
-            self._pos[1] = self._radius
-        if self._pos[0] > 360 - self._radius:
-            self._pos[0] = 360 - self._radius
-        if self._pos[0] < self._radius:
-            self._pos[0] = self._radius
 
     def render(self: Self, surf: pg.Surface, t: Real=1) -> None:
         pos = self._prev_pos.lerp(self._pos, t)
@@ -253,7 +255,8 @@ class Gon(Object):
                  fixed: bool=0,
                  whitelist: Optional[set[type]]={Circle},
                  texture: Optional[pg.Surface]=None,
-                 texture_pivot: Optional[tuple[Point, int, int]]=None) -> None:
+                 texture_pivot: Optional[tuple[Point, int, int]]=None,
+                 data: object=None) -> None:
         mass = 0
         for vertex in vertices:
             mass += vertex._mass
@@ -266,6 +269,7 @@ class Gon(Object):
             fixed,
             whitelist=whitelist,
             texture=texture,
+            data=data,
         )
         self._vertices = vertices
         self.connections = connections

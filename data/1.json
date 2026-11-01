@@ -1,0 +1,12 @@
+{
+    "inventory": {
+        "triangle_up_left": 1,
+        "triangle_up_right": 1
+    },
+    "obstacles": {
+        "140;180": "rocket"
+    },
+    "win": [120, 210, 40, 40],
+    "min": 15,
+    "par": 15
+}
