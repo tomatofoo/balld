@@ -123,9 +123,11 @@ class Game(object):
                 self._win[2] // 10 * 10,
                 self._win[3] // 10 * 10
             ],
+            'min': 10,
+            'par': 10,
         }
         for obj in self._objects:
-            key = f'{obj.pos[0] // 10 * 10};{obj.pos[1] // 10 * 10}'
+            key = f'{int(obj.pos[0] // 10 * 10)};{int(obj.pos[1] // 10 * 10)}'
             data['obstacles'][key] = obj.data
         with open(f'data/{self._number}.json', 'w') as file:
             self._stage = json.dump(data, file)
@@ -223,20 +225,6 @@ class Game(object):
                 self._menu.handle_event(event)
 
             # Update
-            if self._trying:
-                self._timer += rel_game_speed
-                self._level.update(rel_game_speed)
-                remove = set()
-                for obj in self._objects:
-                    if isinstance(obj, Circle):
-                        if obj.pos[1] > self._surface.height + obj.radius:
-                            remove.add(obj)
-                            self._score += 1 self._stage['min']
-                for obj in remove:
-                    self._objects.remove(obj)
-                if (len(self._objects) <= self._obj_count
-                    or self._timer > self._TRY_TIMEOUT):
-                    self._cancel()
             self._menu.update(mouse_pos, pg.mouse.get_pressed())
 
             # Render

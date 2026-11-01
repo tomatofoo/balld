@@ -57,16 +57,13 @@ class Game(object):
                  Circle((120,  60), 0),
                  Circle((160,  60), 0),
                  Circle((0,    40), 0),
-                 Circle((280,  40), 0),
-                 Circle((120, 200), 0),
-                 Circle((160, 200), 0),
-                 Circle((140, 180), 0)),
+                 Circle((280,  40), 0)),
                 ((0, 1, 1), (2, 3, 1),
-                 (4, 6, 1), (5, 7, 1),
-                 (8, 9, 1), (8, 10, 1), (9, 10, 1)),
+                 (4, 6, 1), (5, 7, 1)),
                 fixed=1,
             ),
         }
+        self._stage_frame = set()
         self._objects = self._frame.copy()
         self._level = Level(self._objects, tilesize=8)
 
@@ -133,7 +130,7 @@ class Game(object):
         self._finish = 0
         self._balls = set()
         self._number = 1
-        self._amount = 1
+        self._amount = 2
         self._load(self._number)
         self._score = 0
         self._total_score = 0
@@ -147,10 +144,12 @@ class Game(object):
         self._inventory = self._stage['inventory'].copy()
         self._counters = {}
         self._objects = self._frame.copy()
+        self._stage_frame = set()
         for pos_key, key in self._stage['obstacles'].items():
             split = pos_key.split(';')
             pos = pg.Vector2(int(split[0]), int(split[1]))
-            self._objects.add(preset(key, pos))
+            self._stage_frame.add(preset(key, pos))
+        self._objects |= self._stage_frame
         self._win = pg.Rect(self._stage['win'])
         self._elems = self._base.copy()
         left = self._RIGHT + self._MENU_WIDTH / 4
@@ -216,6 +215,7 @@ class Game(object):
     def _reset(self: Self, arg: object=None) -> None:
         self._inventory = self._stage['inventory'].copy()
         self._objects = self._frame.copy()
+        self._objects |= self._stage_frame
         self._level.objects = self._objects
         for elem in self._elems:
             if isinstance(elem, Draggable):
@@ -287,21 +287,24 @@ class Game(object):
                 elif self._victory:
                     self._win_menu.handle_event(event)
                 else:
-                    if (event.type == pg.MOUSEBUTTONDOWN
-                          and mouse_pos[0] <= self._RIGHT):
-                        closest = [None, math.inf]
-                        for obj in self._objects:
-                            if obj not in self._frame:
-                                dist = mouse_pos.distance_to(obj.pos)
-                                if dist < closest[1]:
-                                    closest[0] = obj
-                                    closest[1] = dist
-                        if closest[0] is not None:
-                            self._objects.remove(closest[0])
-                            dragging = closest[0].data
-                    elif event.type == pg.MOUSEBUTTONUP and dragging is not None:
-                        self._release(dragging, mouse_pos)
-                        dragging = None
+                    if not self._trying:
+                        if (event.type == pg.MOUSEBUTTONDOWN
+                              and mouse_pos[0] <= self._RIGHT):
+                            closest = [None, math.inf]
+                            for obj in self._objects:
+                                if (obj not in self._frame
+                                    and obj not in self._stage_frame):
+                                    dist = mouse_pos.distance_to(obj.pos)
+                                    if dist < closest[1]:
+                                        closest[0] = obj
+                                        closest[1] = dist
+                            if closest[0] is not None:
+                                self._objects.remove(closest[0])
+                                dragging = closest[0].data
+                        elif (event.type == pg.MOUSEBUTTONUP
+                              and dragging is not None):
+                            self._release(dragging, mouse_pos)
+                            dragging = None
                     self._menu.handle_event(event)
 
             # Update
@@ -330,8 +333,14 @@ class Game(object):
                             self._total_score += self._score
                             self._victory = 1
                             self._text_score.text = f'Score: {self._score}'
-                            self._text_min.text = f'Min Score: {self._stage['min']}'
-                            self._text_par.text = f'Par Score: {self._stage['par']}'
+                            self._text_min.text = (
+                                f'Min Score: {self._stage['min']}'
+                            )
+                            diff = self._score - self._stage['par']
+                            self._text_par.text = (
+                                f'Par Score: {self._stage['par']} '
+                                f'({'+' if diff > 0 else ''}{diff})'
+                            )
                 self._menu.update(mouse_pos, pg.mouse.get_pressed())
 
             # Render

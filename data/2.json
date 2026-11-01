@@ -1,0 +1,7 @@
+{
+    "inventory": {"triangle_up_right": 1, "pinwheel": 1},
+    "obstacles": {"140;100": "megaball"},
+    "win": [120, 210, 40, 40],
+    "min": 12,
+    "par": 12
+}
